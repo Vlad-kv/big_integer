@@ -27,7 +27,9 @@ class big_integer {
       for (w = start_max_size; w < real_size; w *= 2) {
         ;
       }
-      upd_max_size(w);
+      if (w != start_max_size) {
+        upd_max_size(w);
+      }
     }
   }
   void upd_real_size() {
@@ -171,6 +173,7 @@ class big_integer {
   void right_shift(int shift) {
     int w_shift = shift / pw_loc_t;
     shift %= pw_loc_t;
+    loc_t e;
     int w;
     bool overflow = ((a[0] & ((1<<shift) - 1)) != 0);
     
@@ -312,7 +315,7 @@ class big_integer {
     }
     return *this;
   }
-  
+    
   big_integer& operator*=(big_integer const& v) {
     inv *= v.inv;
     int new_max_size = max_size;
@@ -357,7 +360,7 @@ class big_integer {
       *this = 0;
       return *this;
     }
-    big_integer divider(divider1), buf1, buf2;
+    big_integer divider(divider1);
     int new_inv = inv * divider.inv;
     inv = divider.inv = 1;
     
@@ -373,42 +376,75 @@ class big_integer {
       s[w] = 0;
     }
     int old_real_size = real_size;
-    loc_t c, v;
-    divider <<= pw_loc_t * (real_size - sz);
     
-    divider *= (size_loc_t / 2);
+    divider <<= pw_loc_t * (real_size - sz);
+    buf_t next, c, v;
+    
+    int e, r;
+    double c1;
     
     for (w = real_size - 1; w >= sz - 1; w--) {
-      c = 0;
-      for (int e = 0; e < buf1.real_size; e++) {
-        buf1.a[e] = 0;
+      c1 = ((buf_t)a[w]) * size_loc_t;
+      v = ((buf_t)divider.a[w]) * size_loc_t;
+      
+      if (w > 0) {
+        c1 += a[w - 1];
+        v += divider.a[w - 1];
       }
-      buf1.real_size = 1;   //buf1 -= buf1;
-      buf2 = divider;
-      for (v = size_loc_t / 2; v; v >>= 1) {
-        buf1 += buf2;
-        if (buf1 <= (*this)) {
-          c += v;
-        } else {
-          buf1 -= buf2;
-        }
-        int e;
-        for (e = buf2.real_size - 1; e >= 0; e--) {
-          if (((buf2.a[e] & 1) == 1) && (e)) {
-            buf2.a[e - 1] += size_loc_t;
-          }
-          buf2.a[e] >>= 1;
-        }
-        for (e = buf2.real_size - 1; (e > 0) && (buf2.a[e] == 0); e--) {
-          ;
-        }
-        buf2.real_size = e + 1;
+      if (w + 1 < max_size) {
+        c1 += ((double)a[w + 1]) * size_loc_t * size_loc_t;
       }
+      
+      c1 /= v + 1;
+      c = (loc_t)(c1 - 1e-10);
+      
       s[w - sz + 1] = c;
-      (*this) -= buf1;
-      divider >>= pw_loc_t;
+      next = 0;
+      
+      for (e = w - sz + 1; e <= w; e++) {
+        next += a[e] - divider.a[e] * c;
+        v = next % size_loc_t;
+        next /= size_loc_t;
+        if (v < 0) {
+          v += size_loc_t;
+          next--;
+        }
+        a[e] = v;
+      }
+      if (next) {
+        a[w + 1] += next;
+      }
+      
+      while ((real_size > 1) && (a[real_size - 1] == 0)) {
+        real_size--;
+      }
+      
+      while (cmp(divider) >= 0) {
+        s[w - sz + 1]++;
+        next = 0;
+        for (e = w - sz + 1; e <= w; e++) {
+          next += (buf_t)a[e] - divider.a[e];
+          v = next;
+          next = 0;
+          while (v < 0) {
+            v += size_loc_t;
+            next--;
+          }
+          a[e] = v;
+        }
+        if (next) {
+          a[w + 1] += next;
+        }
+        while ((real_size > 1) && (a[real_size - 1] == 0)) {
+          real_size--;
+        }
+      }
+      for (e = std::max(w - sz, 0); e < w; e++) {
+        divider.a[e] = divider.a[e + 1];
+      }
+      divider.a[w] = 0;
+      divider.real_size--;
     }
-    
     delete a;
     a = s;
     max_size = new_max_size;
@@ -680,21 +716,21 @@ class big_integer {
   }
   
   big_integer operator+() const {
-    big_integer *rez = new big_integer(*this);
-    return *rez;
+    big_integer rez = (*this);
+    return rez;
   }
   big_integer operator-() const {
-    big_integer *rez = new big_integer(*this);
-    (*rez).inv *= -1;
-    (*rez).upd_real_size();
-    return *rez;
+    big_integer rez = (*this);
+    rez.inv *= -1;
+    rez.upd_real_size();
+    return rez;
   }
   big_integer operator~() const {
-    big_integer *res = new big_integer(*this);
-    ++(*res);
-    (*res).inv *= -1;
-    (*res).upd_real_size();
-    return *res;
+    big_integer res = (*this);
+    ++res;
+    res.inv *= -1;
+    res.upd_real_size();
+    return res;
   }
   
   friend bool operator==(big_integer const& a, big_integer const& s) {
@@ -787,7 +823,6 @@ std::string to_string(big_integer const& a) {
   }
   if (a.inv < 0) {
     res[t] = '-';
-   
     t++;
   }
   res[t] = 0;
