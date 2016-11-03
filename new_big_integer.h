@@ -13,7 +13,7 @@ class big_integer {
     for (w = std::min(max_size, new_max_size) - 1; w >= 0; w--) {
       s[w] = a[w];
     }
-    delete a;
+    delete []a;
     a = s;
     for (w = max_size; w < new_max_size; w++) {
       a[w] = 0;
@@ -278,11 +278,11 @@ class big_integer {
       a[w] = 0;
     }
     real_size = t;
-    delete s;
+    delete []s;
     upd_real_size();
   }
   ~big_integer() {
-    delete(a);
+    delete []a;
   }
   
   big_integer& operator+=(big_integer const& v) {
@@ -346,7 +346,7 @@ class big_integer {
       }
     }
     
-    delete a;
+    delete []a;
     a = s;
     max_size = new_max_size;
     real_size += v.real_size;
@@ -424,7 +424,7 @@ class big_integer {
       }
       divider >>= pw_loc_t;
     }
-    delete a;
+    delete []a;
     a = s;
     max_size = new_max_size;
     inv = new_inv;
@@ -443,7 +443,7 @@ class big_integer {
   
   big_integer& operator=(big_integer const& v) {
     if (max_size != v.max_size) {
-      delete a;
+      delete []a;
       max_size = v.max_size;
       a = new loc_t[max_size];
     }
@@ -810,7 +810,7 @@ std::string to_string(big_integer const& a) {
     std::swap(res[e], res[r]);
   }
   std::string *s = new std::string(res);
-  delete res;
+  delete []res;
   return *s;
 }
 std::ostream& operator<<(std::ostream& out, big_integer const& c) {
