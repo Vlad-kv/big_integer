@@ -190,29 +190,27 @@ void big_integer::right_shift(int shift) {
 }
 
 
-big_integer::big_integer() {
-	max_size = start_max_size;
+big_integer::big_integer()
+	: max_size(start_max_size), real_size(1), inv(1) {
+	
 	a = new loc_t[max_size];
 	for (int w = 0; w < max_size; w++) {
 		a[w] = 0;
 	}
-	inv = 1;
-	real_size = 1;
 }
-big_integer::big_integer(big_integer const& v) {
-	max_size = v.max_size;
-	real_size = v.real_size;
-	inv = v.inv;
+big_integer::big_integer(big_integer const& v)
+	: max_size(v.max_size), real_size(v.real_size), inv(v.inv) {
+	
 	a = new loc_t[max_size];
 	for (int w = 0; w < max_size; w++) {
 		a[w] = v.a[w];
 	}
 }
-big_integer::big_integer(int t) {
-	max_size = start_max_size;
+big_integer::big_integer(int t)
+	: max_size(start_max_size), real_size(1), inv(-1) {
+	
 	a = new loc_t[max_size];
-	real_size = 1;
-	inv = -1;
+	
 	if (t >= 0) {
 		t = -t;
 		inv = 1;
@@ -225,10 +223,18 @@ big_integer::big_integer(int t) {
 		}
 	}
 }
-big_integer::big_integer(std::string const& str) {
+big_integer::big_integer(std::string const& str)
+	: max_size(start_max_size), inv(1) {
+	
 	int w, t, len = str.length();
-	inv = 1;
+	
 	char *s = new char[len];
+	try {
+		a = new loc_t[max_size];
+	} catch (...) {
+		delete []s;
+		throw;
+	}
 	for (w = 0; w < len; w++) {
 		s[w] = str[w];
 	}
@@ -241,8 +247,8 @@ big_integer::big_integer(std::string const& str) {
 	for (w = 1; w < len; w++) {
 		s[w] -= 48;
 	}
-	max_size = start_max_size;
-	a = new loc_t[max_size];
+	
+	
 	t = 0;
 	bool b = 1;
 	buf_t next;
@@ -454,9 +460,12 @@ big_integer& big_integer::operator%=(big_integer const& v) {
 
 big_integer& big_integer::operator=(big_integer const& v) {
 	if (max_size != v.max_size) {
+		loc_t *s = new loc_t[v.max_size];
+		
 		delete []a;
 		max_size = v.max_size;
-		a = new loc_t[max_size];
+		
+		a = s;
 	}
 	real_size = v.real_size;
 	inv = v.inv;
@@ -782,12 +791,21 @@ std::string to_string(big_integer const& a) {
 	while ((w > 0) && (a.a[w] == 0)) {
 		w--;
 	}
-	big_integer::loc_t *f = new big_integer::loc_t[w + 1];
+	
 	int size_res = 2;
-	for (long long c = big_integer::size_loc_t; c; c /= 10) {
+	for (big_integer::buf_t c = big_integer::size_loc_t; c; c /= 10) {
 		size_res += w + 1;
 	}
-	char *res = new char[size_res];
+	
+	big_integer::loc_t *f = new big_integer::loc_t[w + 1];
+	char *res;
+	try {
+		res = new char[size_res];
+	} catch (...) {
+		delete []f;
+		throw;
+	}
+	
 	for (e = 0; e <= w; e++) {
 		f[e] = a.a[e];
 	}
@@ -818,9 +836,14 @@ std::string to_string(big_integer const& a) {
 	for (e = 0, r = t - 1; e < r; e++, r--) {
 		std::swap(res[e], res[r]);
 	}
-	std::string *s = new std::string(res);
-	delete []res;
-	return *s;
+	try {
+		std::string s(res);
+		delete []res;
+		return s;
+	} catch (...) {
+		delete []res;
+		throw;
+	}
 }
 std::ostream& operator<<(std::ostream& out, big_integer const& c) {
 	out << to_string(c);

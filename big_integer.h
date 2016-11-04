@@ -6,13 +6,15 @@
 // Vladislav Kiselyov   M3139
 class big_integer {
 	typedef unsigned int loc_t;
-	typedef int64_t buf_t;
-	static const int64_t pw_loc_t = 31;
-	static const int64_t size_loc_t = ((int64_t)1) << pw_loc_t;
+	typedef long long buf_t;
+	static const long long pw_loc_t = 31;
+	static const long long size_loc_t = ((buf_t)1) << pw_loc_t;
 	static const int start_max_size = 2;
+	
+	int max_size, real_size;
 	loc_t *a;
-	int inv, real_size, max_size;
-
+	int inv;
+	
 	void upd_max_size(int new_max_size);
 
 	void check_max_size();
